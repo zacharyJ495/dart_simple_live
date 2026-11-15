@@ -45,6 +45,13 @@ jobs:
         working-directory: simple_live_app
         run: flutter pub get
 
+      - name: Patch auto_orientation_v2 for Kotlin 2.x DSL
+        run: |
+          F=$(ls -d "$HOME/.pub-cache/hosted/pub.dev"/auto_orientation_v2-*/android/build.gradle | tail -1)
+          echo "patching: $F"
+          sed -i 's/jvmTarget = "JVM_17"/jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)/' "$F"
+          grep -n "jvmTarget" "$F"
+
       - name: Build APK
         working-directory: simple_live_app
         run: flutter build apk --release --split-per-abi
