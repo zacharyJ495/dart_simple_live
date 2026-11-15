@@ -1,0 +1,61 @@
+name: build-android-manual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.10"
+          channel: stable
+          cache: true
+
+      - name: Generate signing key and key.properties
+        working-directory: simple_live_app/android
+        run: |
+          keytool -genkeypair -v \
+            -keystore release.jks -storetype JKS \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias simplelive \
+            -storepass simplelive123 -keypass simplelive123 \
+            -dname "CN=Simple Live, OU=Personal, O=Personal, L=Beijing, ST=Beijing, C=CN"
+          cat > key.properties <<EOF
+          storeFile=${GITHUB_WORKSPACE}/simple_live_app/android/release.jks
+          storePassword=simplelive123
+          keyAlias=simplelive
+          keyPassword=simplelive123
+          EOF
+          cat key.properties
+
+      - name: Restore packages
+        working-directory: simple_live_app
+        run: flutter pub get
+
+      - name: Build APK
+        working-directory: simple_live_app
+        run: flutter build apk --release --split-per-abi
+
+      - name: List output
+        working-directory: simple_live_app
+        run: ls -lh build/app/outputs/flutter-apk/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleLive-apk
+          path: simple_live_app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+          retention-days: 3
