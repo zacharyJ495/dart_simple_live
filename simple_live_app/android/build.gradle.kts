@@ -11,9 +11,15 @@ val newBuildDir: Directory =
         .get()
 rootProject.layout.buildDirectory.value(newBuildDir)
 
+// Several pub plugins (e.g. dynamic_color 1.9.x, auto_orientation_v2 2.4.x)
+// use a `kotlin { ... }` block but never apply the Kotlin Android plugin,
+// which used to be provided implicitly by the old plugin wiring. Apply it to
+// every Android library subproject as soon as the Android plugin is applied.
 subprojects {
-    if (name == "auto_orientation_v2") {
-        pluginManager.apply("org.jetbrains.kotlin.android")
+    if (name != "app") {
+        pluginManager.withPlugin("com.android.library") {
+            pluginManager.apply("org.jetbrains.kotlin.android")
+        }
     }
 }
 
